@@ -121,14 +121,6 @@ python mcp_pipe.py
 - `append_rows`: Append rows to the end of a worksheet | 在工作表末尾追加行
 - `clear_range`: Clear the contents of a range | 清除指定范围的内容
 
-## Google Sheets tools | Google 表格工具
-
-- `list_worksheets`: List all worksheet names in a spreadsheet | 列出表格中的所有工作表名称
-- `read_range`: Read cell values from a range (e.g., `A1:C10`) | 从指定范围读取单元格数据
-- `write_range`: Overwrite a block of cells starting at a top-left cell | 从指定起始单元格覆盖写入一块数据
-- `append_rows`: Append rows to the end of a worksheet | 在工作表末尾追加行
-- `clear_range`: Clear the contents of a range | 清除指定范围的内容
-
 ## Config-driven Servers | 通过配置驱动的服务
 
 编辑 `mcp_config.json` 文件来配置服务器列表（也可设置 `MCP_CONFIG` 环境变量指向其他配置文件）。
