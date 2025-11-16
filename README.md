@@ -128,18 +128,6 @@ python mcp_pipe.py
 - `write_range`: Overwrite a block of cells starting at a top-left cell | 从指定起始单元格覆盖写入一块数据
 - `append_rows`: Append rows to the end of a worksheet | 在工作表末尾追加行
 - `clear_range`: Clear the contents of a range | 清除指定范围的内容
-=======
-- `calculator.py`: Example MCP tool implementation for mathematical calculations | 用于数学计算的MCP工具示例实现
-- `requirements.txt`: Project dependencies | 项目依赖
-
-## Google Sheets tools | Google 表格工具
-
-- `list_worksheets`: List all worksheet names in a spreadsheet | 列出表格中的所有工作表名称
-- `read_range`: Read cell values from a range (e.g., `A1:C10`) | 从指定范围读取单元格数据
-- `write_range`: Overwrite a block of cells starting at a top-left cell | 从指定起始单元格覆盖写入一块数据
-- `append_rows`: Append rows to the end of a worksheet | 在工作表末尾追加行
-- `clear_range`: Clear the contents of a range | 清除指定范围的内容
->>>>>>> theirs
 
 ## Config-driven Servers | 通过配置驱动的服务
 
