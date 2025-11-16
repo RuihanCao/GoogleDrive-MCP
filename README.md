@@ -28,15 +28,27 @@ pip install -r requirements.txt
 
 2. Set up environment variables | 设置环境变量:
 ```bash
-export MCP_ENDPOINT=<wss://api.xiaozhi.me/mcp/?token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjM3NzE3NywiYWdlbnRJZCI6NjYxMTgyLCJlbmRwb2ludElkIjoiYWdlbnRfNjYxMTgyIiwicHVycG9zZSI6Im1jcC1lbmRwb2ludCIsImlhdCI6MTc2MjgwOTI5NCwiZXhwIjoxNzk0MzY2ODk0fQ.GpxYfbAzb50vtNnCCsjvceBZDiq19c6gIn5S03JO6Zv3Cku6xpFmP8HaAS6jjg-F02ObSIwWNu94lDzbWTN46Q>
+export MCP_ENDPOINT=<your_mcp_endpoint>
 for windows:
-$env:MCP_ENDPOINT= "wss://api.xiaozhi.me/mcp/?token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjM3NzE3NywiYWdlbnRJZCI6NjYxMTgyLCJlbmRwb2ludElkIjoiYWdlbnRfNjYxMTgyIiwicHVycG9zZSI6Im1jcC1lbmRwb2ludCIsImlhdCI6MTc2MjgwOTI5NCwiZXhwIjoxNzk0MzY2ODk0fQ.GpxYfbAzb50vtNnCCsjvceBZDiq19c6gIn5S03JO6Zv3Cku6xpFmP8HaAS6jjg-F02ObSIwWNu94lDzbWTN46Q"
+$env:MCP_ENDPOINT=<your_mcp_endpoint>
 ```
 
-3. Run the calculator example | 运行计算器示例:
+3. Prepare Google Sheets credentials | 准备 Google Sheets 凭据：
+
+   1. In the Google Cloud Console, create (or reuse) a project and enable the **Google Sheets API**.
+   2. Create a **Service Account** under *IAM & Admin → Service Accounts*, then generate a key of type **JSON** and download the file (e.g., `service_account.json`).
+   3. Share any target spreadsheets with the service account’s email (it looks like `name@project.iam.gserviceaccount.com`) and give it edit access.
+   4. Export the credential path (or paste the JSON string directly) so the MCP server can authenticate:
+
 ```bash
-python mcp_pipe.py calculator.py
+export GOOGLE_SERVICE_ACCOUNT_JSON="<PATH_TO_JSON>"
+for windows:
+$env:GOOGLE_SERVICE_ACCOUNT_JSON = "<PATH_TO_JSON>"
 ```
+
+4. Run the Google Sheets MCP server | 运行 Google Sheets MCP 服务:
+```bash
+python mcp_pipe.py google_sheets_mcp.py
 
 Or run all configured servers | 或运行所有配置的服务:
 ```bash
@@ -47,11 +59,87 @@ python mcp_pipe.py
 
 *需要 `mcp_config.json` 配置文件定义服务器（支持 stdio/sse/http 传输类型）*
 
+## How to test the Google Sheets MCP | 如何测试 Google 表格 MCP
+
+1. **Create/share a test spreadsheet** | **创建/共享测试表格**  
+   Create a Google Sheet, note its spreadsheet ID (the long value in the URL), and share it with the service account email from your JSON key, giving edit access. | 创建一个 Google 表格，记录其 ID（URL 中的长字符串），并将其共享给服务账号邮箱，授予编辑权限。
+
+2. **Export credentials** | **导出凭据**  
+   Make sure the environment variable still points to your JSON credentials file or raw JSON text: | 确保环境变量仍然指向您的 JSON 凭据文件或原始 JSON 文本：
+   ```bash
+   export GOOGLE_SERVICE_ACCOUNT_JSON=/path/to/service_account.json
+   ```
+
+3. **Run the server** | **运行服务**  
+   ```bash
+   python -m google_sheets_mcp
+   ```
+   Leave this process running so a client can connect. | 保持该进程运行，以便客户端连接。
+
+4. **Interact with the MCP server** | **与 MCP 服务交互**  
+   Use any MCP client (e.g., [Model Context Protocol Inspector](https://github.com/modelcontextprotocol/inspector)) to send tool requests. With the inspector installed (`npm install -g @modelcontextprotocol/inspector`), you can point it at the stdio server like this: | 使用任意 MCP 客户端（如 [Model Context Protocol Inspector](https://github.com/modelcontextprotocol/inspector)）发送工具请求。安装 inspector (`npm install -g @modelcontextprotocol/inspector`) 后，可通过以下方式连接 stdio 服务：
+   ```bash
+   mcp-inspector "python -m google_sheets_mcp"
+   ```
+   Then call the tools (e.g., `list_worksheets`, `append_rows`, `read_range`) with your spreadsheet ID and worksheet name to verify read/write access. | 然后调用工具（如 `list_worksheets`、`append_rows`、`read_range`），使用您的表格 ID 和工作表名称验证读写权限。
+
+5. **Optional Python smoke test (no MCP client needed)** | **可选的 Python 冒烟测试（无需 MCP 客户端）**  
+   If you only want to confirm credentials and sheet access, you can run a quick script that uses the same code paths as the tools: | 若仅想确认凭据和表格访问，可运行一个使用相同代码路径的简易脚本：
+   ```bash
+   python - <<'PY'
+   from google_sheets_mcp import list_worksheets, append_rows, read_range, clear_range
+
+   SPREADSHEET_ID = "your-spreadsheet-id"
+   SHEET = "Sheet1"
+
+   print("Listing worksheets...")
+   print(list_worksheets(SPREADSHEET_ID))
+
+   print("Appending a test row...")
+   append_rows(SPREADSHEET_ID, SHEET, [["MCP Smoke Test", "OK"]])
+
+   print("Reading the last rows...")
+   print(read_range(SPREADSHEET_ID, SHEET, "A1:B10"))
+
+   print("Clearing the test row...")
+   print(clear_range(SPREADSHEET_ID, SHEET, "A1:B10"))
+   PY
+   ```
+   Successful responses (and visible changes in the sheet) indicate the MCP server has working credentials and permissions. | 出现成功的响应（且表格中能看到对应变化）表示 MCP 服务的凭据和权限正常。
+
 ## Project Structure | 项目结构
 
 - `mcp_pipe.py`: Main communication pipe that handles WebSocket connections and process management | 处理WebSocket连接和进程管理的主通信管道
+- `google_sheets_mcp.py`: MCP tool implementation for reading/writing Google Sheets | 用于读取/写入 Google 表格的 MCP 工具
+- `requirements.txt`: Project dependencies | 项目依赖
+
+## Google Sheets tools | Google 表格工具
+
+- `list_worksheets`: List all worksheet names in a spreadsheet | 列出表格中的所有工作表名称
+- `read_range`: Read cell values from a range (e.g., `A1:C10`) | 从指定范围读取单元格数据
+- `write_range`: Overwrite a block of cells starting at a top-left cell | 从指定起始单元格覆盖写入一块数据
+- `append_rows`: Append rows to the end of a worksheet | 在工作表末尾追加行
+- `clear_range`: Clear the contents of a range | 清除指定范围的内容
+
+## Google Sheets tools | Google 表格工具
+
+- `list_worksheets`: List all worksheet names in a spreadsheet | 列出表格中的所有工作表名称
+- `read_range`: Read cell values from a range (e.g., `A1:C10`) | 从指定范围读取单元格数据
+- `write_range`: Overwrite a block of cells starting at a top-left cell | 从指定起始单元格覆盖写入一块数据
+- `append_rows`: Append rows to the end of a worksheet | 在工作表末尾追加行
+- `clear_range`: Clear the contents of a range | 清除指定范围的内容
+=======
 - `calculator.py`: Example MCP tool implementation for mathematical calculations | 用于数学计算的MCP工具示例实现
 - `requirements.txt`: Project dependencies | 项目依赖
+
+## Google Sheets tools | Google 表格工具
+
+- `list_worksheets`: List all worksheet names in a spreadsheet | 列出表格中的所有工作表名称
+- `read_range`: Read cell values from a range (e.g., `A1:C10`) | 从指定范围读取单元格数据
+- `write_range`: Overwrite a block of cells starting at a top-left cell | 从指定起始单元格覆盖写入一块数据
+- `append_rows`: Append rows to the end of a worksheet | 在工作表末尾追加行
+- `clear_range`: Clear the contents of a range | 清除指定范围的内容
+>>>>>>> theirs
 
 ## Config-driven Servers | 通过配置驱动的服务
 

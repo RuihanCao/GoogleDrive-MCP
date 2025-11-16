@@ -1,9 +1,9 @@
 {
   "mcpServers": {
-    "local-stdio-calculator": {
+    "local-stdio-google-sheets": {
       "type": "stdio",
       "command": "python",
-      "args": ["-m", "calculator"]
+      "args": ["-m", "google_sheets_mcp"]
     },
     "remote-sse-server": {
       "type": "sse",
