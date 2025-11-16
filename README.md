@@ -83,30 +83,6 @@ python mcp_pipe.py
    ```
    Then call the tools (e.g., `list_worksheets`, `append_rows`, `read_range`) with your spreadsheet ID and worksheet name to verify read/write access. | 然后调用工具（如 `list_worksheets`、`append_rows`、`read_range`），使用您的表格 ID 和工作表名称验证读写权限。
 
-5. **Optional Python smoke test (no MCP client needed)** | **可选的 Python 冒烟测试（无需 MCP 客户端）**  
-   If you only want to confirm credentials and sheet access, you can run a quick script that uses the same code paths as the tools: | 若仅想确认凭据和表格访问，可运行一个使用相同代码路径的简易脚本：
-   ```bash
-   python - <<'PY'
-   from google_sheets_mcp import list_worksheets, append_rows, read_range, clear_range
-
-   SPREADSHEET_ID = "your-spreadsheet-id"
-   SHEET = "Sheet1"
-
-   print("Listing worksheets...")
-   print(list_worksheets(SPREADSHEET_ID))
-
-   print("Appending a test row...")
-   append_rows(SPREADSHEET_ID, SHEET, [["MCP Smoke Test", "OK"]])
-
-   print("Reading the last rows...")
-   print(read_range(SPREADSHEET_ID, SHEET, "A1:B10"))
-
-   print("Clearing the test row...")
-   print(clear_range(SPREADSHEET_ID, SHEET, "A1:B10"))
-   PY
-   ```
-   Successful responses (and visible changes in the sheet) indicate the MCP server has working credentials and permissions. | 出现成功的响应（且表格中能看到对应变化）表示 MCP 服务的凭据和权限正常。
-
 ## Project Structure | 项目结构
 
 - `mcp_pipe.py`: Main communication pipe that handles WebSocket connections and process management | 处理WebSocket连接和进程管理的主通信管道
@@ -166,20 +142,7 @@ if __name__ == "__main__":
 - mcp>=1.8.1
 - pydantic>=2.11.4
 - mcp-proxy>=0.8.2
-
-## Contributing | 贡献指南
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-欢迎贡献代码！请随时提交Pull Request。
-
-## License | 许可证
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-本项目采用MIT许可证 - 详情请查看LICENSE文件。
-
 ## Acknowledgments | 致谢
 
-- Thanks to all contributors who have helped shape this project | 感谢所有帮助塑造这个项目的贡献者
-- Inspired by the need for extensible AI capabilities | 灵感来源于对可扩展AI能力的需求
+- This project is built on top of the [mcp-calculator](https://github.com/78/mcp-calculator) framework  
+  本项目基于 [mcp-calculator](https://github.com/78/mcp-calculator) 框架构建
