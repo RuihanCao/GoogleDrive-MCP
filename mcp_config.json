@@ -1,10 +1,5 @@
 {
   "mcpServers": {
-    "local-stdio-google-sheets": {
-      "type": "stdio",
-      "command": "python",
-      "args": ["-m", "google_sheets_mcp"]
-    },
     "remote-sse-server": {
       "type": "sse",
       "url": "https://api.example.com/sse",
@@ -14,6 +9,14 @@
       "type": "http",
       "url": "https://api.example.com/mcp",
       "disabled": true
+    },
+    "google-drive": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "google_drive.py"
+      ],
+      "disabled": false
     }
   }
 }

@@ -26,76 +26,79 @@ MCP（模型上下文协议）是一个允许服务器向语言模型暴露可�
 pip install -r requirements.txt
 ```
 
-2. Set up environment variables | 设置环境变量:
+2. Set up your MCP endpoint (replace with your own endpoint and token) | 设置 MCP 端点（替换为你自己的端点与 token）:
 ```bash
-export MCP_ENDPOINT=<your_mcp_endpoint>
-for windows:
-$env:MCP_ENDPOINT=<your_mcp_endpoint>
+export MCP_ENDPOINT="wss://<your-endpoint>/?token=<your-token>"
+# Windows PowerShell
+$env:MCP_ENDPOINT = "wss://<your-endpoint>/?token=<your-token>"
 ```
 
-3. Prepare Google Sheets credentials | 准备 Google Sheets 凭据：
-
-   1. In the Google Cloud Console, create (or reuse) a project and enable the **Google Sheets API**.
-   2. Create a **Service Account** under *IAM & Admin → Service Accounts*, then generate a key of type **JSON** and download the file (e.g., `service_account.json`).
-   3. Share any target spreadsheets with the service account’s email (it looks like `name@project.iam.gserviceaccount.com`) and give it edit access.
-   4. Export the credential path (or paste the JSON string directly) so the MCP server can authenticate:
-
+3. Provide Google credentials for Sheets/Docs access | 提供用于表格/文档的 Google 凭据:
 ```bash
-export GOOGLE_SERVICE_ACCOUNT_JSON="<PATH_TO_JSON>"
-for windows:
-$env:GOOGLE_SERVICE_ACCOUNT_JSON = "<PATH_TO_JSON>"
+# Provide raw JSON
+export GOOGLE_SERVICE_ACCOUNT_JSON='{"type": "service_account", ...}'
+# Or point to a JSON file
+export GOOGLE_SERVICE_ACCOUNT_FILE=/path/to/service_account.json
 ```
 
-4. Run the Google Sheets MCP server | 运行 Google Sheets MCP 服务:
+4. Start the Google Drive MCP server locally via stdio | 通过 stdio 本地启动 Google Drive MCP 服务:
 ```bash
-python mcp_pipe.py google_sheets_mcp.py
+python mcp_pipe.py google_drive.py
+```
 
-Or run all configured servers | 或运行所有配置的服务:
+5. Or launch all servers defined in `mcp_config.json` (override with `MCP_CONFIG` if needed) | 或启动 `mcp_config.json` 中定义的所有服务（需要时可用 `MCP_CONFIG` 覆盖）:
 ```bash
 python mcp_pipe.py
 ```
 
-*Requires `mcp_config.json` configuration file with server definitions (supports stdio/sse/http transport types)*
+`mcp_pipe.py` will use stdio by default; you can also configure SSE/HTTP proxy transports through `mcp_config.json`. | `mcp_pipe.py` 默认使用 stdio；也可以通过 `mcp_config.json` 配置 SSE/HTTP 代理传输。
 
-*需要 `mcp_config.json` 配置文件定义服务器（支持 stdio/sse/http 传输类型）*
+## Google Drive (Sheets + Docs) Tools | Google Drive（表格与文档）工具
 
-## How to test the Google Sheets MCP | 如何测试 Google 表格 MCP
+`google_drive.py` provides both spreadsheet and document tools in a single server（没有单独的 `google_sheet.py` 文件）。
 
-1. **Create/share a test spreadsheet** | **创建/共享测试表格**  
-   Create a Google Sheet, note its spreadsheet ID (the long value in the URL), and share it with the service account email from your JSON key, giving edit access. | 创建一个 Google 表格，记录其 ID（URL 中的长字符串），并将其共享给服务账号邮箱，授予编辑权限。
+1. Required scopes | 需要的作用域：
+   - Sheets: `https://www.googleapis.com/auth/spreadsheets`
+   - Docs: `https://www.googleapis.com/auth/documents`
 
-2. **Export credentials** | **导出凭据**  
-   Make sure the environment variable still points to your JSON credentials file or raw JSON text: | 确保环境变量仍然指向您的 JSON 凭据文件或原始 JSON 文本：
-   ```bash
-   export GOOGLE_SERVICE_ACCOUNT_JSON=/path/to/service_account.json
-   ```
+2. Configure credentials | 配置凭据：
+   - `GOOGLE_SERVICE_ACCOUNT_JSON`: 服务账号原始 JSON（推荐）
+   - 或 `GOOGLE_SERVICE_ACCOUNT_FILE`: 指向 JSON 凭据文件的路径
 
-3. **Run the server** | **运行服务**  
-   ```bash
-   python -m google_sheets_mcp
-   ```
-   Leave this process running so a client can connect. | 保持该进程运行，以便客户端连接。
+3. Available tools | 可用工具：
+   - `update_sheet_values`: 覆盖指定的 Sheet 区域
+   - `append_sheet_rows`: 向 Sheet 区域追加行
+   - `append_document_text`: 向 Google 文档插入文本（默认末尾）
+   - `replace_document_text`: 在 Google 文档中查找并替换文本
+   - `set_document_text`: 用新文本覆盖整个 Google 文档
 
-4. **Interact with the MCP server** | **与 MCP 服务交互**  
-   Use any MCP client (e.g., [Model Context Protocol Inspector](https://github.com/modelcontextprotocol/inspector)) to send tool requests. With the inspector installed (`npm install -g @modelcontextprotocol/inspector`), you can point it at the stdio server like this: | 使用任意 MCP 客户端（如 [Model Context Protocol Inspector](https://github.com/modelcontextprotocol/inspector)）发送工具请求。安装 inspector (`npm install -g @modelcontextprotocol/inspector`) 后，可通过以下方式连接 stdio 服务：
-   ```bash
-   mcp-inspector "python -m google_sheets_mcp"
-   ```
-   Then call the tools (e.g., `list_worksheets`, `append_rows`, `read_range`) with your spreadsheet ID and worksheet name to verify read/write access. | 然后调用工具（如 `list_worksheets`、`append_rows`、`read_range`），使用您的表格 ID 和工作表名称验证读写权限。
+4. Example requests | 示例请求：
+```jsonc
+// Append text to the end of a doc
+{
+  "tool": "append_document_text",
+  "arguments": {"document_id": "<doc-id>", "text": "Hello world"}
+}
+
+// Replace occurrences of "old" with "new"
+{
+  "tool": "replace_document_text",
+  "arguments": {"document_id": "<doc-id>", "old_text": "old", "new_text": "new"}
+}
+
+// Replace the entire doc body
+{
+  "tool": "set_document_text",
+  "arguments": {"document_id": "<doc-id>", "text": "All new content"}
+}
+```
 
 ## Project Structure | 项目结构
 
-- `mcp_pipe.py`: Main communication pipe that handles WebSocket connections and process management | 处理WebSocket连接和进程管理的主通信管道
-- `google_sheets_mcp.py`: MCP tool implementation for reading/writing Google Sheets | 用于读取/写入 Google 表格的 MCP 工具
-- `requirements.txt`: Project dependencies | 项目依赖
-
-## Google Sheets tools | Google 表格工具
-
-- `list_worksheets`: List all worksheet names in a spreadsheet | 列出表格中的所有工作表名称
-- `read_range`: Read cell values from a range (e.g., `A1:C10`) | 从指定范围读取单元格数据
-- `write_range`: Overwrite a block of cells starting at a top-left cell | 从指定起始单元格覆盖写入一块数据
-- `append_rows`: Append rows to the end of a worksheet | 在工作表末尾追加行
-- `clear_range`: Clear the contents of a range | 清除指定范围的内容
+- `mcp_pipe.py`: 处理WebSocket连接和进程管理的主通信管道
+- `mcp_config.json`: 服务器列表与传输配置
+- `google_drive.py`: 提供 Google 表格与文档工具的 MCP 服务器
+- `requirements.txt`: 项目依赖
 
 ## Config-driven Servers | 通过配置驱动的服务
 
@@ -127,12 +130,9 @@ if __name__ == "__main__":
 
 ## Use Cases | 使用场景
 
-- Mathematical calculations | 数学计算
-- Email operations | 邮件操作
-- Knowledge base search | 知识库搜索
-- Remote device control | 远程设备控制
-- Data processing | 数据处理
-- Custom tool integration | 自定义工具集成
+- 更新或追加 Google 表格数据
+- 插入、替换或覆盖 Google 文档内容
+- 自定义工具集成（基于 MCP 协议）
 
 ## Requirements | 环境要求
 
@@ -142,7 +142,23 @@ if __name__ == "__main__":
 - mcp>=1.8.1
 - pydantic>=2.11.4
 - mcp-proxy>=0.8.2
+- google-api-python-client>=2.149.0
+- google-auth>=2.34.0
+- google-auth-httplib2>=0.2.0
+
+## Contributing | 贡献指南
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+欢迎贡献代码！请随时提交PullRequest。
+
+## License | 许可证
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+本项目采用MIT许可证 - 详情请查看LICENSE文件。
+
 ## Acknowledgments | 致谢
 
-- This project is built on top of the [mcp-calculator](https://github.com/78/mcp-calculator) framework  
-  本项目基于 [mcp-calculator](https://github.com/78/mcp-calculator) 框架构建
+- Thanks to all contributors who have helped shape this project | 感谢所有帮助塑造这个项目的贡献者
+- Inspired by the need for extensible AI capabilities | 灵感来源于对可扩展AI能力的需求
